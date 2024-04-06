@@ -1,9 +1,11 @@
+# Nuplan related
 DATA_PATH = '/root/nuplan/dataset/nuplan-v1.1/splits/mini'
 MAP_PATH  = '/root/nuplan/dataset/maps'
-SAVE_PATH = '/root/workspace/GameFormer-Planner/ProcessedData'
+SAVE_PATH = '/root/workspace/GameFormer-Planner/processed_data'
 MAP_VERSION = "nuplan-maps-v1.0"    
 SCENARIOS_PER_TYPE = 1000
 
+# Vectornet Related
 DISCRETE_SIZE = 10
 PAST_TIME_HORIZON = 2 # [seconds]
 NUM_PAST_POSES = DISCRETE_SIZE * PAST_TIME_HORIZON 
@@ -27,3 +29,14 @@ NODE_SIZE = CROSSWALKS_NUM * (CROSSWALKS_POINTS_NUM - 1) \
 NUM_GRAPH = LANE_NUM + ROUTE_LANES_NUM + CROSSWALKS_NUM + NUM_AGENTS + 1
 
 QUERY_RADIUS = 60
+
+# Training related
+TRAIN_PATH = SAVE_PATH
+WEIGHT_PATH = '/root/workspace/GameFormer-Planner/processed_data'
+SEED = 13
+EPOCHS = 50
+BATCH_SIZE = 128
+
+SHOW_EVERY = 10
+VAL_EVERY = 5
+

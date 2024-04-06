@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .subgraph import Subgraph
+from .subgraph import SubGraph
 from .globalgraph import SelfAttentionLayer
 
 from utils import config
