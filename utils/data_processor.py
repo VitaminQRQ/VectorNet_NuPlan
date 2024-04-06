@@ -10,7 +10,7 @@ from .common_utils import (
     get_filter_parameters
 )
 
-from VectorNet.data_utils import (
+from .data_utils import (
     sampled_past_ego_states_to_tensor,
     get_neighbor_vector_set_map,
     sampled_tracked_objects_to_tensor_list,
