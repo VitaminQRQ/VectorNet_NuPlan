@@ -1,2 +1,5 @@
 __pycache__/
-ProcessedData/
+.vscode/
+*.pth
+*.pkl
+*.pt

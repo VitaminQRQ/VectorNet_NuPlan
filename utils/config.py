@@ -32,10 +32,17 @@ QUERY_RADIUS = 60
 
 # Training related
 TRAIN_PATH = SAVE_PATH
-WEIGHT_PATH = '/root/workspace/GameFormer-Planner/processed_data'
+WEIGHT_PATH = '/root/workspace/GameFormer-Planner/trained_params'
 SEED = 13
 EPOCHS = 50
-BATCH_SIZE = 128
+BATCH_SIZE = 8
+
+LEARNING_RATE = 0.001
+IN_CHANNELS = 8
+OUT_CHANNELS = NUM_FUTURE_POSES * 2
+
+DECAY_LR_EVERY = 10
+DECAY_LR_FACTOR = 0.3
 
 SHOW_EVERY = 10
 VAL_EVERY = 5
