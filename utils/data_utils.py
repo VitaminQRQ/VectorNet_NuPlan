@@ -5,6 +5,8 @@ import pandas as pd
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
+from . import config
+
 from nuplan.database.nuplan_db.nuplan_scenario_queries import *
 from nuplan.planning.simulation.trajectory.trajectory_sampling import TrajectorySampling
 
@@ -567,7 +569,6 @@ def encoding_vectornet_features(
     map_subgraph = np.empty((0, 8))
     
     # encoding ego features
-    subgraph_ID = 0
     ego_subgraph = np.hstack((
         ego_past[ :-1, 0].reshape(-1, 1),   
         ego_past[ :-1, 1].reshape(-1, 1),      
@@ -764,6 +765,125 @@ def save_features(df, name, dir_=None):
     # Save the DataFrame as a pickle file
     df.to_pickle(file_path)
 
+def decoding_features(observations):
+    agent_index_end        = (config.NUM_AGENTS + 1) * config.NUM_PAST_POSES
+    lane_index_start       = agent_index_end
+    lane_index_end         = lane_index_start + config.LANE_NUM * (config.LANE_POINTS_NUM - 1)
+
+    crosswalk_index_start  = lane_index_end
+    crosswalk_index_end    = crosswalk_index_start + config.CROSSWALKS_NUM * (config.CROSSWALKS_POINTS_NUM - 1)
+
+    route_lane_index_start = crosswalk_index_end
+
+    ego_past = None
+    agent_past_list = []
+    agent_current_pose_list = []
+    
+    lane_list = []
+    crosswalk_list = []
+    route_lane_list = []
+
+    # plot agents
+    observations = observations.cpu()
+    for i in range(config.NUM_AGENTS + 1):
+        agent_data = observations[i * config.NUM_PAST_POSES : 
+                                (i + 1) * config.NUM_PAST_POSES, 
+                                :4]
+        
+        agent_start_x = agent_data[:, 0]
+        agent_start_y = agent_data[:, 1]
+        agent_end_x = agent_data[:, 2]
+        agent_end_y = agent_data[:, 3]
+        
+        last_end_x = agent_end_x[-1].unsqueeze(0)
+        last_end_y = agent_end_y[-1].unsqueeze(0)
+        
+        agent_x = torch.cat((agent_start_x, last_end_x), dim=0)
+        agent_y = torch.cat((agent_start_y, last_end_y), dim=0)
+        
+        agent_past = torch.stack((agent_x, agent_y), dim=1)
+        
+        if i == 0:
+            ego_past = agent_past.numpy()
+        else:
+            agent_past_list.append(agent_past.numpy())
+
+        agent_current_pose_list.append([last_end_x.item(), last_end_y.item()])
+    
+    agent_current_pose_list = torch.tensor(agent_current_pose_list)
+    
+    for i in range(config.LANE_NUM):
+        lane_data = observations[
+            lane_index_start + i * (config.LANE_POINTS_NUM - 1):
+            lane_index_start + (i + 1) * (config.LANE_POINTS_NUM - 1), 
+            :4]
+            
+        lane_start_x = lane_data[:, 0]
+        lane_start_y = lane_data[:, 1]
+        lane_end_x = lane_data[:, 2]
+        lane_end_y = lane_data[:, 3]
+        
+        last_end_x = lane_end_x[-1].unsqueeze(0)
+        last_end_y = lane_end_y[-1].unsqueeze(0)
+        
+        lane_x = torch.cat((lane_start_x, last_end_x), dim=0)
+        lane_y = torch.cat((lane_start_y, last_end_y), dim=0)
+        
+        lane = torch.stack((lane_x, lane_y), dim=1)
+        lane_list.append(lane.numpy())
+
+    for i in range(config.CROSSWALKS_NUM):
+        crosswalk_data = observations[
+            crosswalk_index_start + i * (config.CROSSWALKS_POINTS_NUM - 1):
+            crosswalk_index_start + (i + 1) * (config.CROSSWALKS_POINTS_NUM - 1), 
+            :4]
+            
+        crosswalk_start_x = crosswalk_data[:, 0]
+        crosswalk_start_y = crosswalk_data[:, 1]
+        crosswalk_end_x = crosswalk_data[:, 2]
+        crosswalk_end_y = crosswalk_data[:, 3]
+        
+        last_end_x = crosswalk_end_x[-1].unsqueeze(0)
+        last_end_y = crosswalk_end_y[-1].unsqueeze(0)
+        
+        crosswalk_x = torch.cat((crosswalk_start_x, last_end_x), dim=0)
+        crosswalk_y = torch.cat((crosswalk_start_y, last_end_y), dim=0)
+        
+        crosswalk = torch.stack((crosswalk_x, crosswalk_y), dim=1)
+        crosswalk_list.append(crosswalk.numpy())
+
+    for i in range(config.ROUTE_LANES_NUM):
+        route_lane_data = observations[
+            route_lane_index_start + i * (config.ROUTE_LANES_POINTS_NUM - 1):
+            route_lane_index_start + (i + 1) * (config.ROUTE_LANES_POINTS_NUM - 1), 
+            :4]
+            
+        route_lane_start_x = route_lane_data[:, 0]
+        route_lane_start_y = route_lane_data[:, 1]
+        route_lane_end_x = route_lane_data[:, 2]
+        route_lane_end_y = route_lane_data[:, 3]
+        
+        last_end_x = route_lane_end_x[-1].unsqueeze(0)
+        last_end_y = route_lane_end_y[-1].unsqueeze(0)
+        
+        route_lane_x = torch.cat((route_lane_start_x, last_end_x), dim=0)
+        route_lane_y = torch.cat((route_lane_start_y, last_end_y), dim=0)
+        
+        route_lane = torch.stack((route_lane_x, route_lane_y), dim=1)
+        route_lane_list.append(route_lane.numpy())
+    
+    return ego_past, agent_past_list, lane_list, crosswalk_list, route_lane_list, agent_current_pose_list
+
+def increment_to_trajectories(predictions, agent_current_pose_list):
+    increments = predictions.view(config.NUM_AGENTS + 1, config.NUM_FUTURE_POSES, 2)
+    predicted_path_list = torch.zeros(config.NUM_AGENTS + 1, config.NUM_FUTURE_POSES, 2)
+    predicted_path_list[:, 0, :] = agent_current_pose_list + increments[:, 0, :]
+
+    for i in range(1, config.NUM_FUTURE_POSES):
+        predicted_path_list[:, i, :] = predicted_path_list[:, i-1, :] + increments[:, i, :]
+
+    return predicted_path_list
+
 def wrap_to_pi(theta):
     return (theta+np.pi) % (2*np.pi) - np.pi
 
@@ -827,8 +947,7 @@ def create_agents_raster(agents):
 
 
 def create_map_raster(lanes, crosswalks, route_lanes):
-    for i in range(lanes.shape[0]):
-        lane = lanes[i]
+    for lane in lanes:
         if lane[0][0] != 0:
             plt.plot(
                 lane[:, 0], 
@@ -837,8 +956,7 @@ def create_map_raster(lanes, crosswalks, route_lanes):
                 linewidth=1
             ) # plot centerline
 
-    for j in range(crosswalks.shape[0]):
-        crosswalk = crosswalks[j]
+    for crosswalk in crosswalks:
         if crosswalk[0][0] != 0:
             plt.plot(
                 crosswalk[:, 0], 
@@ -847,8 +965,7 @@ def create_map_raster(lanes, crosswalks, route_lanes):
                 linewidth=1
             ) # plot crosswalk
 
-    for k in range(route_lanes.shape[0]):
-        route_lane = route_lanes[k]
+    for route_lane in route_lanes:
         if route_lane[0][0] != 0:
             plt.plot(
                 route_lane[:, 0], 
@@ -857,24 +974,52 @@ def create_map_raster(lanes, crosswalks, route_lanes):
                 linewidth=1
             ) # plot route_lanes
 
-def draw_trajectory(ego_trajectory, agent_trajectories):
+def retrieve_prediction_result(initial_positions, increments):
+    """
+    根据初始位置和位置增量重建完整的轨迹。
+
+    参数:
+    - initial_positions: 一个形状为 (num_agents, 2) 的张量，包含每个代理的初始 x 和 y 坐标。
+    - increments: 一个形状为 (num_agents, 80) 的张量，每行包含 40 个 x 增量和 40 个 y 增量。
+    
+    返回:
+    - paths: 一个形状为 (num_agents, 41, 2) 的张量，包含每个代理的完整轨迹，从初始位置开始。
+    """
+
+    num_agents = initial_positions.shape[0]
+    # 确保增量张量有正确的形状 (num_agents, 40, 2)
+    increments = increments.view(num_agents, 40, 2)
+    
+    # 初始化路径张量，每个代理多一个初始点所以是 41 个点
+    paths = torch.zeros(num_agents, 41, 2)
+    
+    # 设置每个代理的初始位置
+    paths[:, 0, :] = initial_positions
+      
+    # 累加位置增量以构造完整的路径
+    for i in range(1, 41):
+        paths[:, i, :] = paths[:, i-1, :] + increments[:, i-1, :]
+
+    return paths
+
+def draw_trajectory(ego_trajectory, agent_trajectories, alpha=1, linewidth=3):
     # plot ego 
     plt.plot(
         ego_trajectory[:, 0], 
         ego_trajectory[:, 1], 
         color=COLOR_DICT['ego'], 
-        linewidth=3, 
-        zorder=3
+        linewidth=linewidth, 
+        zorder=3,
+        alpha=alpha
     )
 
-    # plot others
-    for i in range(agent_trajectories.shape[0]):
-        if agent_trajectories[i, -1, 0] != 0:
-            trajectory = agent_trajectories[i]
+    for trajectory in agent_trajectories:
+        if trajectory[-1, 0] != 0:
             plt.plot(
                 trajectory[:, 0], 
                 trajectory[:, 1], 
                 color=COLOR_DICT['agent'], 
-                linewidth=3, 
-                zorder=3
-            )
+                linewidth=linewidth, 
+                zorder=3,
+                alpha=alpha
+            )            

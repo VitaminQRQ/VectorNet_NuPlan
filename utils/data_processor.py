@@ -191,7 +191,7 @@ class DataProcessor(object):
     def plot_scenario(self, data):
         # Draw past and future trajectories
         draw_trajectory(data['ego_agent_past'], data['neighbor_agents_past'])
-        draw_trajectory(data['ego_agent_future'], data['neighbor_agents_future'])
+        draw_trajectory(data['ego_agent_future'], data['neighbor_agents_future'], alpha=0.5, linewidth=2)
 
         # Create map layers
         create_map_raster(data['lanes'], data['crosswalks'], data['route_lanes'])
@@ -305,7 +305,7 @@ if __name__ == '__main__':
     scenarios = builder.get_scenarios(scenario_filter, worker)
     
     # pick a scenario
-    scenario = scenarios[4]
+    scenario = scenarios[11]
 
     # process data
     data_processor = DataProcessor(scenario)

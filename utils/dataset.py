@@ -13,6 +13,8 @@ from torch_geometric.loader import DataLoader
 
 from . import config
 
+import logging
+
 def get_fully_connected_edge_index(num_nodes, start=0):
     """
     Generate a fully connected graph's edge indices with no self-loops.
@@ -119,15 +121,20 @@ class GraphDataset(InMemoryDataset):
                 x_list.append(trajectory_features)
                 edge_index_list.append(edge_index)
             
-            accumulate_edge_index = mask[1]
+            accumulate_edge_index = mask[1] + 1
 
             # process lanes
             for id, mask in lane_ID_to_indices.items():
-                lane_features = features[mask[0] : mask[1] + 1]
+                lane_features = features[
+                    accumulate_edge_index + mask[0] : 
+                    accumulate_edge_index + mask[1] + 1
+                ]
                 
-                edge_index = get_sequential_edge_index(
+                print((accumulate_edge_index + mask[0], accumulate_edge_index + mask[1] + 1))
+                
+                edge_index = get_fully_connected_edge_index(
                     lane_features.shape[0],
-                    start=mask[0] + accumulate_edge_index + 1
+                    start=mask[0] + accumulate_edge_index
                 )
 
                 x_list.append(lane_features)
@@ -136,9 +143,6 @@ class GraphDataset(InMemoryDataset):
             # concat subgraph data to global graph
             x_combined = np.vstack(x_list).astype(np.float32)
             edge_index_combined = np.hstack(edge_index_list)
-            
-            print("size of x combined:", x_combined.shape)
-            print("size of features:", features.shape)
             
             graph_data = GraphData(
                 x=torch.from_numpy(x_combined).to(torch.float32),

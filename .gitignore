@@ -1,5 +1,7 @@
 __pycache__/
 .vscode/
+processed_data/
+trained_params/
 *.pth
 *.pkl
 *.pt
