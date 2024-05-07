@@ -129,14 +129,15 @@ class GraphDataset(InMemoryDataset):
                     accumulate_edge_index + mask[0] : 
                     accumulate_edge_index + mask[1] + 1
                 ]
-                
-                print((accumulate_edge_index + mask[0], accumulate_edge_index + mask[1] + 1))
-                
-                edge_index = get_fully_connected_edge_index(
+                                
+                # edge_index = get_fully_connected_edge_index(
+                #     lane_features.shape[0],
+                #     start=mask[0] + accumulate_edge_index
+                # )
+                edge_index = get_sequential_edge_index(
                     lane_features.shape[0],
                     start=mask[0] + accumulate_edge_index
                 )
-
                 x_list.append(lane_features)
                 edge_index_list.append(edge_index) 
             

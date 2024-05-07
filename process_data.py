@@ -71,7 +71,4 @@ if __name__ == '__main__':
         data_processor = DataProcessor(scenario)
         data, features = data_processor.process(debug=False)
         
-        if count > 10:
-            break
-        
         count = count + 1

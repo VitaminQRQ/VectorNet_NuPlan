@@ -514,14 +514,13 @@ def polyline_process(polylines, avails, traffic_light=None):
 
     return new_polylines
 
-def agent_ground_truth_traj_to_increments(origin, agent_future):
-    # 计算从 origin 到每个未来点的增量
-    increments = agent_future - origin
+def agent_ground_truth_traj_to_increments(last_observed_agent, agent_future):
+    agent_increments = np.zeros_like(agent_future[:, 0:2])
 
-    # 将增量转换为从每个点到下一个点的增量
-    increments[1:] = increments[1:] - increments[:-1]
-
-    return increments
+    agent_increments[1:] = agent_future[1:, 0:2] - agent_future[:-1, 0:2]
+    agent_increments[0] = agent_future[0, 0:2] - last_observed_agent    
+    
+    return agent_increments
 
 def restore_agent_traj_from_increments(origin, increments):
     """
