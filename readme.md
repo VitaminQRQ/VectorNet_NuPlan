@@ -1,3 +1,5 @@
+**Still unfinished**
+
 ## Implement VectorNet using the NuPlan Dataset
 
 This guide outlines the steps to implement VectorNet using the NuPlan dataset.
@@ -39,7 +41,3 @@ Follow the instructions in `visual.ipynb` to visualize the prediction results. T
 - Example of a prediction result:
 
 ![](./result/output_10.png)
-
-目前的问题：
-1. Ground truth 或者回溯轨迹的方法有问题，导致现在画出来的轨迹都怪怪的。
-   不过可以肯定的是，网络结构是没有半点问题的。
